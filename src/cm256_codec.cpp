@@ -83,7 +83,7 @@ static bool create_original_blocks(CM256::cm256_block * blocks, std::list<std::v
         const std::vector<uint8_t> & data = *iter++;
         if (data.size() > block_bytes)
         {
-            return (false);
+            return false;
         }
 
         std::vector<uint8_t> original_buffer(block_size, 0x0);
@@ -106,14 +106,14 @@ static bool create_original_blocks(CM256::cm256_block * blocks, std::list<std::v
         original_blocks.emplace_back(std::move(original_buffer));
     }
 
-    return (true);
+    return true;
 }
 
 static bool create_recovery_blocks(CM256::cm256_block * blocks, std::list<std::vector<uint8_t>> & recovery_blocks, uint16_t frame_index, uint8_t frame_filter, uint8_t original_count, uint8_t recovery_count, uint16_t block_bytes)
 {
     if (0 == recovery_count)
     {
-        return (true);
+        return true;
     }
 
     uint8_t * recovery_data[256] = { 0x0 };
@@ -144,23 +144,23 @@ static bool create_recovery_blocks(CM256::cm256_block * blocks, std::list<std::v
     CM256 cm256;
     if (!cm256.isInitialized())
     {
-        return (false);
+        return false;
     }
 
     CM256::cm256_encoder_params params = { original_count, recovery_count, static_cast<int>(sizeof(uint16_t) + block_bytes) };
     if (0 != cm256.cm256_encode(params, blocks, recovery_data))
     {
-        return (false);
+        return false;
     }
 
-    return (true);
+    return true;
 }
 
 bool cm256_encode(uint16_t & frame_index, uint8_t & frame_filter, std::list<std::vector<uint8_t>> & dst_data_list, const std::list<std::vector<uint8_t>> & src_data_list, double recovery_rate, std::size_t max_data_size, bool recovery_force)
 {
     if (recovery_rate < 0.0 || recovery_rate >= 1.0)
     {
-        return (false);
+        return false;
     }
 
     if (0 == max_data_size)
@@ -175,7 +175,7 @@ bool cm256_encode(uint16_t & frame_index, uint8_t & frame_filter, std::list<std:
     }
     if (max_data_size >= 65536)
     {
-        return (false);
+        return false;
     }
 
     std::size_t data_list_left = src_data_list.size();
@@ -210,13 +210,13 @@ bool cm256_encode(uint16_t & frame_index, uint8_t & frame_filter, std::list<std:
         std::list<std::vector<uint8_t>> original_blocks;
         if (!create_original_blocks(blocks, original_blocks, frame_index, frame_filter, original_count, recovery_count, block_bytes, iter))
         {
-            return (false);
+            return false;
         }
 
         std::list<std::vector<uint8_t>> recovery_blocks;
         if (!create_recovery_blocks(blocks, recovery_blocks, frame_index, frame_filter, original_count, recovery_count, block_bytes))
         {
-            return (false);
+            return false;
         }
 
         dst_data_list.splice(dst_data_list.end(), original_blocks);
@@ -228,7 +228,7 @@ bool cm256_encode(uint16_t & frame_index, uint8_t & frame_filter, std::list<std:
         }
     }
 
-    return (true);
+    return true;
 }
 
 static bool insert_frame_block(const void * data, std::size_t data_len, frames_t & frames, uint16_t & frame_index, uint32_t max_delay_microseconds)
@@ -277,11 +277,11 @@ static bool insert_frame_block(const void * data, std::size_t data_len, frames_t
 
             frames.decode_timer_list.push_back(decode_timer);
 
-            return (true);
+            return true;
         }
         else
         {
-            return (false);
+            return false;
         }
     }
 
@@ -289,19 +289,19 @@ static bool insert_frame_block(const void * data, std::size_t data_len, frames_t
         block_header.frame_index != frame_header.frame_index || block_header.frame_filter != frame_header.frame_filter || 
         block_header.original_count != frame_header.original_count || block_header.recovery_count != frame_header.recovery_count)
     {
-        return (false);
+        return false;
     }
 
     if (frame_header.block_bitmap[block_header.block_index >> 3] & (1 << (block_header.block_index & 7)))
     {
-        return (false);
+        return false;
     }
 
     if (frame_header.block_count == frame_header.original_count)
     {
         if (block_header.block_index >= block_header.original_count)
         {
-            return (false);
+            return false;
         }
         else
         {
@@ -326,7 +326,7 @@ static bool insert_frame_block(const void * data, std::size_t data_len, frames_t
         frame_header.block_count += 1;
     }
 
-    return (true);
+    return true;
 }
 
 static bool cm256_decode(frame_header_t & frame_header, frame_body_t & frame_body, std::list<std::vector<uint8_t>> & src_data_list)
@@ -357,13 +357,13 @@ static bool cm256_decode(frame_header_t & frame_header, frame_body_t & frame_bod
             CM256 cm256;
             if (!cm256.isInitialized())
             {
-                return (false);
+                return false;
             }
 
             CM256::cm256_encoder_params params = { frame_header.original_count, frame_header.recovery_count, static_cast<int>(frame_header.block_size - sizeof(block_header_t)) };
             if (0 != cm256.cm256_decode(params, blocks))
             {
-                return (false);
+                return false;
             }
         }
         else
@@ -379,7 +379,7 @@ static bool cm256_decode(frame_header_t & frame_header, frame_body_t & frame_bod
         std::vector<uint8_t>(block->body.block_chunk, block->body.block_chunk + ntohs(block->body.block_bytes)).swap(data);
     }
 
-    return (true);
+    return true;
 }
 
 bool cm256_decode(const void * data, std::size_t data_len, frames_t & frames, std::list<std::vector<uint8_t>> & dst_data_list, uint32_t max_delay_microseconds, bool recovery_force)
@@ -428,5 +428,5 @@ bool cm256_decode(const void * data, std::size_t data_len, frames_t & frames, st
         }
     }
 
-    return (true);
+    return true;
 }
